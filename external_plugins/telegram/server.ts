@@ -965,6 +965,7 @@ async function handleInbound(
   void bot.api.sendChatAction(chat_id, 'typing').catch(() => {})
 
   const imagePath = downloadImage ? await downloadImage() : undefined
+  const replyToMessageId = ctx.message?.reply_to_message?.message_id
 
   // Ack reaction — lets the sender know the message reached Claude. Tied to
   // delivery via deliverAndAck (see ./ack.ts): the reaction only fires once
@@ -984,6 +985,11 @@ async function handleInbound(
         meta: {
           chat_id,
           ...(msgId != null ? { message_id: String(msgId) } : {}),
+          // Telegram's own reply-quote — which prior message (by message_id)
+          // this one is a reply to, if any. Without this, a reply and a plain
+          // message are indistinguishable to the model: it can see that this
+          // message exists, but not what it's a reply to.
+          ...(replyToMessageId != null ? { reply_to_message_id: String(replyToMessageId) } : {}),
           user: from.username ?? String(from.id),
           user_id: String(from.id),
           ts: new Date((ctx.message?.date ?? 0) * 1000).toISOString(),
